@@ -1,12 +1,20 @@
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
+import 'package:meta/meta.dart';
+import 'package:simple_bloc/authentication/authentication.dart';
 import 'package:simple_bloc/login/login_event.dart';
 import 'package:simple_bloc/login/login_state.dart';
 
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
+  final AuthenticationBloc authenticationBloc;
+
+  LoginBloc({
+    @required this.authenticationBloc,
+  }) : assert(authenticationBloc != null);
+
   @override
-  LoginState get initialState => LoginState.initial();
+  LoginState get initialState => LoginInitial();
 
   void onLoginButtonPressed({String username, String password}) {
     dispatch(
@@ -23,13 +31,15 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     LoginEvent event,
   ) async* {
     if (event is LoginButtonPressed) {
-      yield LoginState.loading();
+      yield LoginLoading();
       try {
         // get token from API.
         final token = await _authenticate(event.username, event.password);
-        yield LoginState.success(token);
+        authenticationBloc.dispatch(LoggedIn(token: token));
+        yield LoginInitial();
+        // yield LoginState.success(token);
       } catch (error) {
-        yield LoginState.failure(error);
+        yield LoginFailure(error: error);
       }
     }
   }

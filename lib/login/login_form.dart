@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:simple_bloc/authentication/authentication.dart';
 import 'package:simple_bloc/login/login.dart';
 
 class LoginForm extends StatefulWidget {
   final LoginBloc loginBloc;
+  final AuthenticationBloc authenticationBloc;
 
-  LoginForm({Key key, @required this.loginBloc}) : super(key: key);
+  LoginForm({
+    Key key,
+    @required this.loginBloc,
+    @required this.authenticationBloc,
+  }) : super(key: key);
 
   @override
   LoginFormState createState() {
@@ -24,9 +30,15 @@ class LoginFormState extends State<LoginForm> {
     return BlocBuilder<LoginEvent, LoginState>(
       bloc: _loginBloc,
       builder: (context, loginstate) {
-        if (loginstate.token.isNotEmpty) {
-          // do something
-          debugPrint(loginstate.token);
+        if (loginstate is LoginFailure) {
+          _onWidgetDidBuild(() {
+            Scaffold.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${loginstate.error}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          });
         }
         return Form(
           child: Column(
@@ -41,17 +53,14 @@ class LoginFormState extends State<LoginForm> {
                 obscureText: true,
               ),
               RaisedButton(
-                onPressed: loginstate.isLoginButtonEnabled
-                    ? _onLoginButtonPressed
-                    : null,
+                onPressed:
+                    loginstate is !LoginLoading ? _onLoginButtonPressed : null,
                 child: Text('Login'),
               ),
-              (loginstate.error.isNotEmpty)
-                  ? Text(loginstate.error)
-                  : Container(),
               Container(
-                child:
-                    loginstate.isLoading ? CircularProgressIndicator() : null,
+                child: loginstate is LoginLoading
+                    ? CircularProgressIndicator()
+                    : null,
               )
             ],
           ),
@@ -60,10 +69,16 @@ class LoginFormState extends State<LoginForm> {
     );
   }
 
+  void _onWidgetDidBuild(Function callback) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      callback();
+    });
+  }
+
   _onLoginButtonPressed() {
-    widget.loginBloc.onLoginButtonPressed(
+    _loginBloc.dispatch(LoginButtonPressed(
       username: usernameController.text.trim(),
       password: passwordController.text.trim(),
-    );
+    ));
   }
 }

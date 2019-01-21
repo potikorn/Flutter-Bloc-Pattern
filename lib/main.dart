@@ -1,6 +1,10 @@
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:simple_bloc/authentication/authentication.dart';
+import 'package:simple_bloc/home_page.dart';
 import 'package:simple_bloc/login/login.dart';
+import 'package:simple_bloc/splash_page.dart';
 
 class SimpleBlocDelegate extends BlocDelegate {
   @override
@@ -12,34 +16,54 @@ void main() {
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: LoginPage(),
-    );
+  MyAppState createState() {
+    return new MyAppState();
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-  final String title;
+class MyAppState extends State<MyApp> {
+  AuthenticationBloc _authenticationBloc;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
+  void initState() {
+    _authenticationBloc = AuthenticationBloc()..dispatch(AppStarted());
+    super.initState();
+  }
 
-class _MyHomePageState extends State<MyHomePage> {
+  @override
+  void dispose() {
+    _authenticationBloc.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
+    return BlocProvider(
+      bloc: _authenticationBloc,
+      child: MaterialApp(
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: BlocBuilder<AuthenticationEvent, AuthenticationState>(
+          bloc: _authenticationBloc,
+          builder: (context, state) {
+            if (state is AuthenticationUnintialized) {
+              return SplashPage();
+            }
+            if (state is AuthenticationAuthenticated) {
+              return HomePage();
+            }
+            if (state is AuthenticationUnauthenticated) {
+              return LoginPage();
+            }
+            if (state is AuthenticationLoading) {
+              return Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+          },
+        ),
       ),
-      body: LoginPage(),
     );
   }
 }
